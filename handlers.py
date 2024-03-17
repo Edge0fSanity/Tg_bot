@@ -7,6 +7,11 @@ import text
 
 router = Router()
 
+
+@router.message(commands=['help'])
+async def process_help_command(msg: types.Message):
+    await msg.reply("Напиши мне что-нибудь, и я отпрпавлю этот текст тебе в ответ!")
+
 @router.message(Command("start"))
 async def start_handler(msg: Message):
     await msg.answer(text.greet.format(name=msg.from_user.full_name), reply_markup=kb.menu)

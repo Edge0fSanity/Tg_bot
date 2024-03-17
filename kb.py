@@ -1,3 +1,5 @@
+#kb = keyboards, тут храним клавиатуры для меню
+
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove
 menu = [
     [InlineKeyboardButton(text="📝 Генерировать текст", callback_data="generate_text"),
