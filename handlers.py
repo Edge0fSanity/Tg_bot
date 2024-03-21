@@ -8,7 +8,7 @@ import text
 router = Router()
 
 
-@router.message(commands=['help'])
+@router.message(Command('help'))
 async def process_help_command(msg: types.Message):
     await msg.reply("Напиши мне что-нибудь, и я отпрпавлю этот текст тебе в ответ!")
 
