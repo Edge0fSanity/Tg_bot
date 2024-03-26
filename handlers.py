@@ -26,4 +26,29 @@ async def menu(msg: Message):
 
 @router.callback_query(F.data == "help") #Попытка обработки нажатия кнопки помощи
 async def input_text_prompt(clbck: CallbackQueryHandler):
-    await clbck.message.answer("Бля, братан, тут сам не ебу", reply_markup=kb.exit_kb) 
+    await clbck.message.answer("Сам не ебу, бро", reply_markup=kb.exit_kb) 
+    await clbck.answer(
+        text="Спасибо, Идите нахуй!",  #Чтобы кнопка потухла - нужно сделать этот answer. Можно оставить пустым лишь бы был
+        show_alert=False
+    )
+
+@router.callback_query(F.data == "exercise_start") #Попытка обработки нажатия начать упражнение
+async def input_text_prompt(clbck: CallbackQueryHandler):
+    await clbck.message.answer("Сначала заполни информацию о себе, долбоеб", reply_markup=kb.exit_kb) 
+    await clbck.answer()
+
+@router.callback_query(F.data == "send_meal") #Попытка обработки нажатия получить блюдо
+async def input_text_prompt(clbck: CallbackQueryHandler):
+    await clbck.message.answer("Сначала заполни информацию о себе, долбоеб", reply_markup=kb.exit_kb) 
+    await clbck.answer(
+        text="Спасибо, Идите нахуй!",
+        show_alert=True
+    )
+
+@router.callback_query(F.data == "make_user") #Попытка обработки нажатия заполнить данные
+async def input_text_prompt(clbck: CallbackQueryHandler):
+    await clbck.message.answer("Иди нахуй", reply_markup=kb.exit_kb) 
+    await clbck.answer(
+        text="Спасибо, Идите нахуй!",
+        show_alert=True
+    )
