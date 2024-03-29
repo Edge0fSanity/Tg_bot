@@ -1,17 +1,20 @@
 import psycopg2
 
+#reference of structure in sqlLite https://github.com/Priler/accountant/blob/main/db.py
+#reference of psycopg2 https://github.com/pythontoday/python_postgresql_connection/blob/master/main.py
+
 class BotDB:
 
     def __init__(self, host, user, password, db_name):
         try:
         # connect to exist database
-            connection = psycopg2.connect(
+            self.connection = psycopg2.connect(
             host=host,
             user=user,
             password=password,
             database=db_name    
             )
-            connection.autocommit = True
+            self.connection.autocommit = True
         except Exception as _ex:
             print("[INFO] Error while working with PostgreSQL", _ex)
 
