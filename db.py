@@ -22,6 +22,9 @@ class BotDB:
         result = self.cursor.execute("SELECT id FROM users WHERE user_id = %user_id")
         return bool(len(result.fetchall()))
     
+    def add_user(self, user_id, lifestyle, age, hight, weight, gender): #создангие пользователя
+        pass
+    
 
 
     def close(self): #Закрываем соединение с БД
