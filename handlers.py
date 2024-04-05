@@ -1,7 +1,7 @@
 from aiogram import F, Router, types, html
 from aiogram.filters import Command, CommandStart
 from aiogram.types import Message, ReplyKeyboardRemove
-from aiogram.handlers import CallbackQueryHandler
+from aiogram.types import CallbackQuery
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 
@@ -12,7 +12,6 @@ import text
 
 #обработка форм:
 import logging
-import sys
 from typing import Any, Dict
 
 class Form(StatesGroup):
@@ -25,12 +24,15 @@ class Form(StatesGroup):
 
 form_router = Router()
 
+
 #стартуем машину состояний
+
 @form_router.callback_query(F.data == "make_user")
-async def form_start(message: Message, state: FSMContext) -> None:
+@form_router.callback_query(F.text.casefold() == "соси")
+async def form_start(message, state: FSMContext) -> None:
     await state.set_state(Form.name)
     await message.answer(
-        text.make_user + "\nНа любом из шагов напиши 'Отмена' и мы отложим этот разговор",
+        text.make_user + "\nНа любом из шагов напиши 'Отмена' и мы отложим этот разговор", #приветствуем пользователя и сообщаем о возможности отмены
         reply_markup=ReplyKeyboardRemove(),
     )
 
@@ -53,14 +55,71 @@ async def cancel_handler(message: Message, state: FSMContext) -> None:
     )
 
 
+@form_router.message(Form.name)
+async def process_name(message, state: FSMContext) -> None:
+    await state.update_data(name=message.text)
+    await message.answer(
+        f"Привет, {html.quote(message.text)}!",
+            resize_keyboard=True, 
+            reply_markup=ReplyKeyboardRemove())
+    await state.set_state(Form.activity)
+    
+@form_router.message(Form.activity)
+async def process_activity(clbck: CallbackQuery, state: FSMContext) -> None:
+    await clbck.message.answer("Как бы ты оценил свой уровень активности ?",
+        reply_markup=kb.activity
+    )
+    await state.update_data(activity = F.data)
+    await clbck.delete()
+    await state.set_state(Form.age)
 
+@form_router.message(Form.age)
+async def process_age(clbck: CallbackQuery, state: FSMContext) -> None:
+    await clbck.message.answer(
+        "Сколько тебе лет ?",
+        reply_markup=ReplyKeyboardRemove(),
+    )
+    await state.update_data(age = F.text)
+    await state.set_state(Form.height)
+
+@form_router.message(Form.height)
+async def process_age(clbck: CallbackQuery, state: FSMContext) -> None:
+    await clbck.message.answer(
+        "Какого ты пола ?",
+        reply_markup=kb.sex,
+    )
+    await state.update_data(sex = F.data)
+    await state.set_state(Form.weight)
+
+@form_router.message(Form.height)
+async def process_age(clbck: CallbackQuery, state: FSMContext) -> None:
+    await clbck.message.answer(
+        "Укажи свой вес в кг",
+        reply_markup=ReplyKeyboardRemove(),
+    )
+    await state.update_data(weight = F.text)
+    await state.clear()
+    
+    await show_summary(message=clbck.message, data=state.data.get(), positive=False) #реализуем эту функцию, когда пользователь полностью пройдет опрос
+
+
+
+async def show_summary(clbck: CallbackQuery, data: Dict[str, Any], positive: bool = True) -> None:
+    text = f"Итак данные вышли такими:\n Пользователь: {data["name"]}\n"
+    text += f"Пол: {data["sex"]}\n"
+    text += f"Активность: {data["activity"]}\n"
+    text += f"Возраст: {data["age"]}\n"
+    text += f"Рост: {data["height"]}\n"
+    text += f"Вес: {data["weight"]}\n"+"Спасибо за прохождение анкетирования !"
+    
+    await clbck.message.answer(text=text, reply_markup=ReplyKeyboardRemove())
 
 
 router = Router()
 
 
 @router.message(Command('help'))
-async def process_help_command(msg: types.Message):
+async def process_help_command(msg: Message):
     await msg.reply("Напиши мне что-нибудь, и я отправлю этот текст тебе в ответ!")
 
 @router.message(Command("start"))
@@ -74,16 +133,16 @@ async def menu(msg: Message):
     await msg.answer(text.menu, reply_markup=kb.menu)
 
 @router.callback_query(F.data == "help") #Попытка обработки нажатия кнопки помощи
-async def input_text_prompt(clbck: CallbackQueryHandler):
+async def input_text_prompt(clbck: CallbackQuery):
     await clbck.message.answer("Сам не ебу, бро", reply_markup=kb.exit_kb) 
     await clbck.answer()
 
 @router.callback_query(F.data == "exercise_start") #Попытка обработки нажатия начать упражнение
-async def input_text_prompt(clbck: CallbackQueryHandler):
+async def input_text_prompt(clbck: CallbackQuery):
     await clbck.message.answer("Сначала заполни информацию о себе, долбоеб", reply_markup=kb.exit_kb) 
     await clbck.answer()
 
 @router.callback_query(F.data == "send_meal") #Попытка обработки нажатия получить блюдо
-async def input_text_prompt(clbck: CallbackQueryHandler):
+async def input_text_prompt(clbck: CallbackQuery):
     await clbck.message.answer("Сначала заполни информацию о себе, долбоеб", reply_markup=kb.exit_kb) 
     await clbck.answer()
