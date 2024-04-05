@@ -1,11 +1,60 @@
-from aiogram import F, Router, types
-from aiogram.filters import Command
-from aiogram.types import Message
+from aiogram import F, Router, types, html
+from aiogram.filters import Command, CommandStart
+from aiogram.types import Message, ReplyKeyboardRemove
 from aiogram.handlers import CallbackQueryHandler
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import State, StatesGroup
 
 
 import kb
 import text
+
+
+#обработка форм:
+import logging
+import sys
+from typing import Any, Dict
+
+class Form(StatesGroup):
+    name = State()
+    activity = State()
+    age = State()
+    height = State()
+    sex = State()
+    weight = State()
+
+form_router = Router()
+
+#стартуем машину состояний
+@form_router.callback_query(F.data == "make_user")
+async def form_start(message: Message, state: FSMContext) -> None:
+    await state.set_state(Form.name)
+    await message.answer(
+        text.make_user + "\nНа любом из шагов напиши 'Отмена' и мы отложим этот разговор",
+        reply_markup=ReplyKeyboardRemove(),
+    )
+
+
+@form_router.message(Command("cancel"))
+@form_router.message(F.text.casefold() == "отмена")
+async def cancel_handler(message: Message, state: FSMContext) -> None:
+    """
+    Allow user to cancel any action
+    """
+    current_state = await state.get_state()
+    if current_state is None:
+        return
+
+    logging.info("Cancelling state %r", current_state)
+    await state.clear()
+    await message.answer(
+        "А начиналось так красиво...",
+        reply_markup=ReplyKeyboardRemove(),
+    )
+
+
+
+
 
 router = Router()
 
@@ -27,10 +76,7 @@ async def menu(msg: Message):
 @router.callback_query(F.data == "help") #Попытка обработки нажатия кнопки помощи
 async def input_text_prompt(clbck: CallbackQueryHandler):
     await clbck.message.answer("Сам не ебу, бро", reply_markup=kb.exit_kb) 
-    await clbck.answer(
-        text="Спасибо, Идите нахуй!",  #Чтобы кнопка потухла - нужно сделать этот answer. Можно оставить пустым лишь бы был
-        show_alert=False
-    )
+    await clbck.answer()
 
 @router.callback_query(F.data == "exercise_start") #Попытка обработки нажатия начать упражнение
 async def input_text_prompt(clbck: CallbackQueryHandler):
@@ -40,15 +86,4 @@ async def input_text_prompt(clbck: CallbackQueryHandler):
 @router.callback_query(F.data == "send_meal") #Попытка обработки нажатия получить блюдо
 async def input_text_prompt(clbck: CallbackQueryHandler):
     await clbck.message.answer("Сначала заполни информацию о себе, долбоеб", reply_markup=kb.exit_kb) 
-    await clbck.answer(
-        text="Спасибо, Идите нахуй!",
-        show_alert=True
-    )
-
-@router.callback_query(F.data == "make_user") #Попытка обработки нажатия заполнить данные
-async def input_text_prompt(clbck: CallbackQueryHandler):
-    await clbck.message.answer("Иди нахуй", reply_markup=kb.exit_kb) 
-    await clbck.answer(
-        text="Спасибо, Идите нахуй!",
-        show_alert=True
-    )
+    await clbck.answer()
