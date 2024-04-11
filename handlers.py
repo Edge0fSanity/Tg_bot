@@ -28,13 +28,13 @@ form_router = Router()
 #стартуем машину состояний
 
 @form_router.callback_query(F.data == "make_user")
-@form_router.callback_query(F.text.casefold() == "соси")
-async def form_start(message, state: FSMContext) -> None:
+async def form_start(clbck: CallbackQuery, state: FSMContext) -> None:
+    await clbck.message.answer(
+        text.make_user, 
+        reply_markup=ReplyKeyboardRemove()
+    ) #приветствуем пользователя и сообщаем о возможности отмены
+    await clbck.message.answer("На любом из шагов напиши 'Отмена' и мы отложим этот разговор")
     await state.set_state(Form.name)
-    await message.answer(
-        text.make_user + "\nНа любом из шагов напиши 'Отмена' и мы отложим этот разговор", #приветствуем пользователя и сообщаем о возможности отмены
-        reply_markup=ReplyKeyboardRemove(),
-    )
 
 
 @form_router.message(Command("cancel"))
@@ -63,40 +63,40 @@ async def process_name(message, state: FSMContext) -> None:
             resize_keyboard=True, 
             reply_markup=ReplyKeyboardRemove())
     await state.set_state(Form.activity)
-    
-@form_router.message(Form.activity)
-async def process_activity(clbck: CallbackQuery, state: FSMContext) -> None:
-    await clbck.message.answer("Как бы ты оценил свой уровень активности ?",
-        reply_markup=kb.activity
+    await message.answer("Как бы ты оценил свой уровень активности ?",
+    reply_markup=kb.activity
     )
+    
+@form_router.callback_query(Form.activity)
+async def process_activity(clbck: CallbackQuery, state: FSMContext) -> None:
     await state.update_data(activity = F.data)
-    await clbck.delete()
     await state.set_state(Form.age)
-
-@form_router.message(Form.age)
-async def process_age(clbck: CallbackQuery, state: FSMContext) -> None:
     await clbck.message.answer(
         "Сколько тебе лет ?",
         reply_markup=ReplyKeyboardRemove(),
     )
+
+@form_router.message(Form.age)
+async def process_age(clbck: CallbackQuery, state: FSMContext) -> None:
     await state.update_data(age = F.text)
     await state.set_state(Form.height)
-
-@form_router.message(Form.height)
-async def process_age(clbck: CallbackQuery, state: FSMContext) -> None:
-    await clbck.message.answer(
+    await clbck.answer(
         "Какого ты пола ?",
         reply_markup=kb.sex,
     )
+    await clbck.answer()
+
+@form_router.callback_query(Form.height)
+async def process_age(clbck: CallbackQuery, state: FSMContext) -> None:
     await state.update_data(sex = F.data)
     await state.set_state(Form.weight)
-
-@form_router.message(Form.height)
-async def process_age(clbck: CallbackQuery, state: FSMContext) -> None:
     await clbck.message.answer(
         "Укажи свой вес в кг",
         reply_markup=ReplyKeyboardRemove(),
     )
+
+@form_router.message(Form.height)
+async def process_age(clbck: CallbackQuery, state: FSMContext) -> None:
     await state.update_data(weight = F.text)
     await state.clear()
     
@@ -112,7 +112,7 @@ async def show_summary(clbck: CallbackQuery, data: Dict[str, Any], positive: boo
     text += f"Рост: {data["height"]}\n"
     text += f"Вес: {data["weight"]}\n"+"Спасибо за прохождение анкетирования !"
     
-    await clbck.message.answer(text=text, reply_markup=ReplyKeyboardRemove())
+    await clbck.answer(text=text, reply_markup=ReplyKeyboardRemove())
 
 
 router = Router()
@@ -129,8 +129,9 @@ async def start_handler(msg: Message):
 @router.message(F.text == "Меню") #F - это элемент библиотеки magick-filters, поставляемой с aiogram
 @router.message(F.text == "Выйти в меню") # lambda message: message.text == 'Выйти в меню'
 @router.message(F.text == "◀️ Выйти в меню")
-async def menu(msg: Message):
+async def menu(msg: Message, clbck: CallbackQuery):
     await msg.answer(text.menu, reply_markup=kb.menu)
+    await clbck.answer()
 
 @router.callback_query(F.data == "help") #Попытка обработки нажатия кнопки помощи
 async def input_text_prompt(clbck: CallbackQuery):

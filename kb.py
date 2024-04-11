@@ -18,3 +18,9 @@ activity = [
     [InlineKeyboardButton(text="Каждый день занимаюсь спортом, либо физически активная работа", callback_data="veryhigh_activity")]
 ]
 activity = InlineKeyboardMarkup(inline_keyboard=activity)
+
+sex = [
+    [InlineKeyboardButton(text="муж", callback_data="male"),
+    InlineKeyboardButton(text="жен", callback_data="female")],
+]
+sex = InlineKeyboardMarkup(inline_keyboard=sex)
