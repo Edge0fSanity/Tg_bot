@@ -18,9 +18,10 @@ class Form(StatesGroup):
     name = State()
     activity = State()
     age = State()
-    height = State()
     sex = State()
+    height = State()
     weight = State()
+    do_save = State()
 
 form_router = Router()
 
@@ -35,6 +36,7 @@ async def form_start(clbck: CallbackQuery, state: FSMContext) -> None:
     ) #приветствуем пользователя и сообщаем о возможности отмены
     await clbck.message.answer("На любом из шагов напиши 'Отмена' и мы отложим этот разговор")
     await state.set_state(Form.name)
+    await clbck.answer()
 
 
 @form_router.message(Command("cancel"))
@@ -69,50 +71,74 @@ async def process_name(message, state: FSMContext) -> None:
     
 @form_router.callback_query(Form.activity)
 async def process_activity(clbck: CallbackQuery, state: FSMContext) -> None:
-    await state.update_data(activity = F.data)
+    await state.update_data(activity = clbck.data)
     await state.set_state(Form.age)
     await clbck.message.answer(
         "Сколько тебе лет ?",
         reply_markup=ReplyKeyboardRemove(),
     )
+    await clbck.answer()
+
 
 @form_router.message(Form.age)
-async def process_age(clbck: CallbackQuery, state: FSMContext) -> None:
-    await state.update_data(age = F.text)
-    await state.set_state(Form.height)
-    await clbck.answer(
+async def process_age(message: Message, state: FSMContext) -> None:
+    await state.update_data(age = message.text)
+    await state.set_state(Form.sex)
+    await message.answer(
         "Какого ты пола ?",
         reply_markup=kb.sex,
     )
-    await clbck.answer()
 
-@form_router.callback_query(Form.height)
+
+@form_router.callback_query(Form.sex)
 async def process_age(clbck: CallbackQuery, state: FSMContext) -> None:
-    await state.update_data(sex = F.data)
-    await state.set_state(Form.weight)
+    await state.update_data(sex = clbck.data)
+    await state.set_state(Form.height)
     await clbck.message.answer(
-        "Укажи свой вес в кг",
+        "Какой у тебя рост ?",
         reply_markup=ReplyKeyboardRemove(),
     )
+    await clbck.answer()
+
 
 @form_router.message(Form.height)
-async def process_age(clbck: CallbackQuery, state: FSMContext) -> None:
-    await state.update_data(weight = F.text)
-    await state.clear()
+async def process_height(message: Message, state: FSMContext) -> None:
+    await state.update_data(height = message.text)
+    await state.set_state(Form.weight)
+    await message.answer(
+        "Укажи свой вес в кг",
+        reply_markup=ReplyKeyboardRemove()
+    )
+
+@form_router.message(Form.weight)
+async def process_weight_summary(message: Message, state: FSMContext) -> None:
+    data = await state.update_data(weight = message.text)
     
-    await show_summary(message=clbck.message, data=state.data.get(), positive=False) #реализуем эту функцию, когда пользователь полностью пройдет опрос
+    await show_summary(message=message, data=data) #реализуем эту функцию, когда пользователь полностью пройдет опрос
+
+    await message.answer("Сохранить новые данные ?", reply_markup=kb.yno)
+    await state.set_state(Form.do_save)
 
 
+@form_router.callback_query(Form.do_save, F.data == "yes")  #Надо дописать сохранение информации о пользователе в базу данных
+async def save_data(clbck: CallbackQuery, state: FSMContext):
+    await state.clear()
 
-async def show_summary(clbck: CallbackQuery, data: Dict[str, Any], positive: bool = True) -> None:
-    text = f"Итак данные вышли такими:\n Пользователь: {data["name"]}\n"
+@form_router.callback_query(Form.do_save, F.data == "no")
+async def save_data(clbck: CallbackQuery, state: FSMContext):
+    clbck.message.answer("Оставим как было", reply_markup=ReplyKeyboardRemove())
+    await state.clear()
+
+
+async def show_summary(message: Message, data: Dict[str, Any]) -> None:
+    text = f"Итак данные вышли такими:\nПользователь: {data["name"]}\n"
     text += f"Пол: {data["sex"]}\n"
     text += f"Активность: {data["activity"]}\n"
     text += f"Возраст: {data["age"]}\n"
     text += f"Рост: {data["height"]}\n"
     text += f"Вес: {data["weight"]}\n"+"Спасибо за прохождение анкетирования !"
     
-    await clbck.answer(text=text, reply_markup=ReplyKeyboardRemove())
+    await message.answer(text=text, reply_markup=ReplyKeyboardRemove())
 
 
 router = Router()

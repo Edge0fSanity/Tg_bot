@@ -24,3 +24,9 @@ sex = [
     InlineKeyboardButton(text="жен", callback_data="female")],
 ]
 sex = InlineKeyboardMarkup(inline_keyboard=sex)
+
+yno = [[
+    InlineKeyboardButton(text="Да", callback_data="yes"),
+    InlineKeyboardButton(text="Нет", callback_data="no")]]
+
+yno = InlineKeyboardMarkup(inline_keyboard=yno)
