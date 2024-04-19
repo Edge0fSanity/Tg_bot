@@ -9,6 +9,9 @@ from aiogram.fsm.state import State, StatesGroup
 import kb
 import text
 
+import db
+
+usersDB = db.usersDB()
 
 #обработка форм:
 import logging
@@ -122,12 +125,18 @@ async def process_weight_summary(message: Message, state: FSMContext) -> None:
 
 @form_router.callback_query(Form.do_save, F.data == "yes")  #Надо дописать сохранение информации о пользователе в базу данных
 async def save_data(clbck: CallbackQuery, state: FSMContext):
+    usersDB.delete_user(clbck.from_user.id)
+    data = await state.get_data()
+    usersDB.add_user(clbck.from_user.id, data["activity"], data["age"], data["height"], data["weight"], data["sex"])
+    logging.info(f"User {clbck.from_user.id} data changed")
     await state.clear()
+    await clbck.answer()
 
 @form_router.callback_query(Form.do_save, F.data == "no")
 async def save_data(clbck: CallbackQuery, state: FSMContext):
     clbck.message.answer("Оставим как было", reply_markup=ReplyKeyboardRemove())
     await state.clear()
+    await clbck.answer()
 
 
 async def show_summary(message: Message, data: Dict[str, Any]) -> None:
