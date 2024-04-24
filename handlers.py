@@ -127,14 +127,14 @@ async def process_weight_summary(message: Message, state: FSMContext) -> None:
 async def save_data(clbck: CallbackQuery, state: FSMContext):
     usersDB.delete_user(clbck.from_user.id)
     data = await state.get_data()
-    usersDB.add_user(clbck.from_user.id, data["activity"], data["age"], data["height"], data["weight"], data["sex"])
+    usersDB.add_user(clbck.from_user.id, data["activity"].replace(',', '.'), data["age"].replace(',', '.'), data["height"].replace(',', '.'), data["weight"].replace(',', '.'), data["sex"])
     logging.info(f"User {clbck.from_user.id} data changed")
     await state.clear()
     await clbck.answer()
 
 @form_router.callback_query(Form.do_save, F.data == "no")
 async def save_data(clbck: CallbackQuery, state: FSMContext):
-    clbck.message.answer("Оставим как было", reply_markup=ReplyKeyboardRemove())
+    await clbck.message.answer("Оставим как было", reply_markup=ReplyKeyboardRemove())
     await state.clear()
     await clbck.answer()
 

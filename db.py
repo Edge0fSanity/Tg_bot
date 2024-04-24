@@ -15,37 +15,43 @@ class usersDB:
             password="reanimator2401",
             database="fitness"    
             )
-            self.connection.autocommit = True
         except Exception as _ex:
             print("[INFO] Error while working with PostgreSQL", _ex)
-        finally:
-            self.cursor = self.connection.cursor()
-            self.connection.autocommit = True
         
 
     def user_exists(self, user_id): #проверяем, есть ли пользователь в базе
-        try:
-            self.cursor.execute(f"SELECT user_id FROM users WHERE user_id = {user_id};")
-        except Exception as _ex: 
-            return False
-        finally:
-            return True
+        with self.connection.cursor() as cursor:
+            try:
+            
+                cursor.execute("SELECT user_id FROM users WHERE user_id = %s;", (user_id, ))
+            except Exception as _ex: 
+                self.connection.rollback()
+                return False
+            finally:
+                return bool(cursor.fetchone())
     
     def add_user(self, user_id, lifestyle, age, height, weight, gender): #создангие пользователя
-        if not(self.user_exists(user_id)):
-            self.cursor.execute(f"""INSERT INTO your_table_name (user_id, lifestyle, age, height, weight, gender)
-                                VALUES ({user_id}, {lifestyle}, {age}, {height}, {weight}, {gender});""")
-    
+        if True:
+            with self.connection.cursor() as cursor:
+                cursor.execute("""INSERT INTO users (user_id, lifestyle, age, height, weight, gender)
+                                VALUES (%s, %s, %s, %s, %s, %s);""", (user_id, lifestyle, age, height, weight, gender))
+                self.connection.commit()
+
+
     def delete_user(self, user_id):
-        self.cursor.execute(f"""DELETE FROM users
+        with self.connection.cursor() as cursor:
+            cursor.execute(f"""DELETE FROM users
                             WHERE user_id = {user_id};""")
+            self.connection.commit()
+
 
     def get_data(self, user_id, within="all"):
         result = ""
         try:
-            result = self.cursor.execute(f"""SELECT {within} 
+            with self.connection.cursor() as cursor:
+                result = cursor.execute("""SELECT %s 
                                          FROM users 
-                                         WHERE user_id = {user_id}""")
+                                         WHERE user_id = %s""", (within, user_id))
         except psycopg2.Error as e:
             pass
         return result
