@@ -19,7 +19,7 @@ class usersDB:
             print("[INFO] Error while working with PostgreSQL", _ex)
         
 
-    def user_exists(self, user_id): #проверяем, есть ли пользователь в базе
+    def user_exists(self, user_id) -> bool: #проверяем, есть ли пользователь в базе
         with self.connection.cursor() as cursor:
             try:
             
@@ -30,28 +30,29 @@ class usersDB:
             finally:
                 return bool(cursor.fetchone())
     
-    def add_user(self, user_id, lifestyle, age, height, weight, gender): #создангие пользователя
+    def add_user(self, user_id, user_name, lifestyle, age, height, weight, gender): #создангие пользователя
         if True:
             with self.connection.cursor() as cursor:
-                cursor.execute("""INSERT INTO users (user_id, lifestyle, age, height, weight, gender)
-                                VALUES (%s, %s, %s, %s, %s, %s);""", (user_id, lifestyle, age, height, weight, gender))
+                cursor.execute("""INSERT INTO users (user_id, user_name, lifestyle, age, height, weight, gender)
+                                VALUES (%s, %s, %s, %s, %s, %s, %s);""", (user_id, user_name, lifestyle, age, height, weight, gender))
                 self.connection.commit()
 
 
     def delete_user(self, user_id):
         with self.connection.cursor() as cursor:
-            cursor.execute(f"""DELETE FROM users
-                            WHERE user_id = {user_id};""")
+            cursor.execute("""DELETE FROM users
+                            WHERE user_id = %s;""", (user_id, ))
             self.connection.commit()
 
 
-    def get_data(self, user_id, within="all"):
-        result = ""
+    def get_data(self, user_id) -> tuple:
+        result = (0,0,0,0,0,0,0)
         try:
-            with self.connection.cursor() as cursor:
-                result = cursor.execute("""SELECT %s 
-                                         FROM users 
-                                         WHERE user_id = %s""", (within, user_id))
+            with self.connection.cursor() as curs:
+                curs.execute("""SELECT * 
+                                FROM users 
+                                WHERE user_id = %s""", (user_id, ))
+                result = curs.fetchone()
         except psycopg2.Error as e:
             pass
         return result
