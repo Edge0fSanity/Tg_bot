@@ -34,3 +34,9 @@ user_data = [[
     InlineKeyboardButton(text="Заполнить профиль", callback_data="make_user"),
     InlineKeyboardButton(text="Назад", callback_data="Back")]]
 user_data = InlineKeyboardMarkup(inline_keyboard=user_data)
+
+meal = [[
+    InlineKeyboardButton(text="Завтрак", callback_data="breakfast"),
+    InlineKeyboardButton(text="Обед", callback_data="dinner"),
+    InlineKeyboardButton(text="Ужин", callback_data="supper")]]
+meal = InlineKeyboardMarkup(inline_keyboard=meal)

@@ -4,7 +4,7 @@ from aiogram.types import Message, ReplyKeyboardRemove
 from aiogram.types import CallbackQuery
 from aiogram.fsm.context import FSMContext
 
-
+import utils
 import kb
 import text
 
@@ -12,7 +12,7 @@ from states import Form
 from states import main_states
 import db
 
-usersDB = db.usersDB()
+fitnessDB = db.fitnessDB()
 
 #обработка форм:
 import logging
@@ -53,10 +53,14 @@ async def input_text_prompt(clbck: CallbackQuery):
     await clbck.answer()
 
 @router.callback_query(F.data == "send_meal") #Попытка обработки нажатия получить блюдо
-async def input_text_prompt(clbck: CallbackQuery):
-    await clbck.message.answer("Сначала заполни информацию о себе, долбоеб", reply_markup=kb.exit_kb) 
+async def send_meal(clbck: CallbackQuery):
+    await clbck.message.answer("Какое блюдо вы хотите получить ?", reply_markup=kb.meal) 
     await clbck.answer()
 
+@router.callback_query(F.data == "send_meal") #Попытка обработки нажатия получить блюдо
+async def send_meal(clbck: CallbackQuery):
+    await clbck.message.answer(f"Вот вам блюдо: {fitnessDB.getfood()}", reply_markup=kb.exit_kb) 
+    await clbck.answer()
 
 @router.message()
 async def dont_understand(msg: Message): #Если написали не по теме
@@ -68,16 +72,18 @@ async def dont_understand(msg: Message): #Если написали не по т
 
 form_router = Router()
 
+#TODO: Переделать форму так, чтобы предыдущие сообщения редактировались, а не удялялись
+
 @form_router.callback_query(F.data == "user_data")
 async def user_data(clbck: CallbackQuery, state: FSMContext):
-    if not(usersDB.user_exists(clbck.from_user.id)):
+    if not(fitnessDB.user_exists(clbck.from_user.id)):
         await clbck.message.delete()
         await clbck.message.answer(
         text.no_user_data, 
         reply_markup=kb.user_data
         )
     else:
-        data = usersDB.get_data(int(clbck.from_user.id))
+        data = fitnessDB.get_data(int(clbck.from_user.id))
         logging.info(data)
         await clbck.message.answer(
             text.user_data + '\n' + text.form_user_data(data), 
@@ -93,8 +99,9 @@ async def back(clbck: CallbackQuery, state: FSMContext):
 
 
 
+
 @form_router.callback_query(F.data == "make_user", main_states.form)
-async def form_start(clbck: CallbackQuery, state: FSMContext) -> None:
+async def make_user(clbck: CallbackQuery, state: FSMContext) -> None:
     await clbck.message.answer(
         text.make_user, 
         reply_markup=ReplyKeyboardRemove()
@@ -186,7 +193,7 @@ async def process_height(message: Message, state: FSMContext) -> None:
 async def process_weight_summary(message: Message, state: FSMContext) -> None:
     data = await state.update_data(weight = message.text)
     await message.delete()
-    await show_summary(message=message, data=data) #реализуем эту функцию, когда пользователь полностью пройдет опрос
+    await show_summary(message=message, data=data) #когда пользователь полностью пройдет опрос
 
     await message.answer("Сохранить новые данные ?", reply_markup=kb.yno)
     await state.set_state(Form.do_save)
@@ -194,16 +201,36 @@ async def process_weight_summary(message: Message, state: FSMContext) -> None:
 
 @form_router.callback_query(Form.do_save, F.data == "yes") 
 async def save_data(clbck: CallbackQuery, state: FSMContext):
-    usersDB.delete_user(clbck.from_user.id)
-    data = await state.get_data()
-    
-    usersDB.add_user(clbck.from_user.id, data["name"], data["activity"].replace(',', '.'), data["age"].replace(',', '.'), data["height"].replace(',', '.'), data["weight"].replace(',', '.'), data["sex"])
-    
-    logging.info(f"User {clbck.from_user.id} data changed")
-    
+
+    data = utils.data_prep(await state.get_data())
+    try:
+        fitnessDB.add_user(clbck.from_user.id, 
+                       data["name"], 
+                       data["activity"], 
+                       data["age"], 
+                       data["height"], 
+                       data["weight"], 
+                       data["sex"],
+                       utils.eval_kkal(
+                           data["activity"], 
+                            data["age"], 
+                            data["height"], 
+                            data["weight"], 
+                            data["sex"]
+                            ))
+        
+        logging.info(f"User {clbck.from_user.id} data changed")
+        await clbck.message.answer("Данные сохранены", reply_markup=ReplyKeyboardRemove())
+        await clbck.message.answer(text.menu, reply_markup=kb.menu)
+
+    except:
+
+        logging.info(f"User {clbck.from_user.id} data not changed")
+        await clbck.message.answer("Данные не сохранены \n Проверьте правильность введенных чисел", reply_markup=ReplyKeyboardRemove())
+        await clbck.message.answer(text.menu, reply_markup=kb.menu)
+        
+
     await clbck.message.delete()
-    clbck.message.answer("Данные сохранены", reply_markup=ReplyKeyboardRemove())
-    await clbck.message.answer(text.menu, reply_markup=kb.menu)
     await state.clear()
     await clbck.answer()
 

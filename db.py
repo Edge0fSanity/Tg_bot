@@ -1,10 +1,11 @@
 import psycopg2
+import logging
 
 
 #reference of structure in sqlLite https://github.com/Priler/accountant/blob/main/db.py
 #reference of psycopg2 https://github.com/pythontoday/python_postgresql_connection/blob/master/main.py
 
-class usersDB:
+class fitnessDB:
 
     def __init__(self):
         try:
@@ -16,7 +17,7 @@ class usersDB:
             database="fitness"    
             )
         except Exception as _ex:
-            print("[INFO] Error while working with PostgreSQL", _ex)
+             logging.info("[INFO] Error while working with PostgreSQL", _ex)
         
 
     def user_exists(self, user_id) -> bool: #проверяем, есть ли пользователь в базе
@@ -30,14 +31,6 @@ class usersDB:
             finally:
                 return bool(cursor.fetchone())
     
-    def add_user(self, user_id, user_name, lifestyle, age, height, weight, gender): #создангие пользователя
-        if True:
-            with self.connection.cursor() as cursor:
-                cursor.execute("""INSERT INTO users (user_id, user_name, lifestyle, age, height, weight, gender)
-                                VALUES (%s, %s, %s, %s, %s, %s, %s);""", (user_id, user_name, lifestyle, age, height, weight, gender))
-                self.connection.commit()
-
-
     def delete_user(self, user_id):
         with self.connection.cursor() as cursor:
             cursor.execute("""DELETE FROM users
@@ -45,8 +38,29 @@ class usersDB:
             self.connection.commit()
 
 
+    def add_user(self, user_id, user_name, lifestyle, age, height, weight, gender, kkal) -> bool: #создангие пользователя
+        """"
+        delete old and creates new user with 
+        user_id as primary key
+        """
+        try:
+            self.delete_user(user_id)
+            with self.connection.cursor() as cursor:
+                cursor.execute("""INSERT INTO users (user_id, user_name, lifestyle, age, height, weight, gender, kkal)
+                                VALUES (%s, %s, %s, %s, %s, %s, %s, %s);""", (user_id, user_name, lifestyle, age, height, weight, gender, kkal))
+                self.connection.commit()
+                return True
+        except Exception as _ex: 
+            self.connection.rollback()
+            logging.info("[INFO] Error while working with PostgreSQL add_user function", _ex)
+            return False
+
+
+
+
+
     def get_data(self, user_id) -> tuple:
-        result = (0,0,0,0,0,0,0)
+        result = (0,0,0,0,0,0,0,0)
         try:
             with self.connection.cursor() as curs:
                 curs.execute("""SELECT * 
@@ -56,10 +70,23 @@ class usersDB:
         except psycopg2.Error as e:
             pass
         return result
+    
+    def getfood(self, kkall: float) -> str:
+        """"returns 'Not found' when sql output is not provided"""
 
+        result = "Not found"
+
+        try:
+            with self.connection.cursor() as curs:
+                curs.execute("""SELECT name FROM food
+                                WHERE kkal = %s
+                                ORDER BY RANDOM()
+                                LIMIT 1;""", (kkall, ))
+                result = curs.fetchone()
+        except psycopg2.Error as e:
+            pass
+        return result
+        
 
     def __del__(self): #Закрываем соединение с БД
         self.connection.close()
-
-class foodDB:
-    pass
