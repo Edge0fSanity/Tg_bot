@@ -40,3 +40,9 @@ meal = [[
     InlineKeyboardButton(text="Обед", callback_data="dinner"),
     InlineKeyboardButton(text="Ужин", callback_data="supper")]]
 meal = InlineKeyboardMarkup(inline_keyboard=meal)
+
+goal = [[
+    InlineKeyboardButton(text="Набор массы", callback_data="2"),
+    InlineKeyboardButton(text="Оставаться в форме", callback_data="1"),
+    InlineKeyboardButton(text="Снижение массы", callback_data="0")]]
+goal = InlineKeyboardMarkup(inline_keyboard=goal)

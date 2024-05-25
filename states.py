@@ -3,6 +3,7 @@ from aiogram.fsm.state import State, StatesGroup
 class Form(StatesGroup):
     name = State()
     activity = State()
+    goal = State()
     age = State()
     sex = State()
     height = State()

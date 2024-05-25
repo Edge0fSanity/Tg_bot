@@ -59,7 +59,7 @@ async def send_meal(clbck: CallbackQuery):
 
 @router.callback_query(F.data == "send_meal") #Попытка обработки нажатия получить блюдо
 async def send_meal(clbck: CallbackQuery):
-    await clbck.message.answer(f"Вот вам блюдо: {fitnessDB.getfood()}", reply_markup=kb.exit_kb) 
+    await clbck.message.answer(f"Вот вам блюдо: {await fitnessDB.getfood()}", reply_markup=kb.exit_kb) 
     await clbck.answer()
 
 @router.message()
@@ -76,14 +76,14 @@ form_router = Router()
 
 @form_router.callback_query(F.data == "user_data")
 async def user_data(clbck: CallbackQuery, state: FSMContext):
-    if not(fitnessDB.user_exists(clbck.from_user.id)):
+    if not(await fitnessDB.user_exists(clbck.from_user.id)):
         await clbck.message.delete()
         await clbck.message.answer(
         text.no_user_data, 
         reply_markup=kb.user_data
         )
     else:
-        data = fitnessDB.get_data(int(clbck.from_user.id))
+        data = await fitnessDB.get_data(int(clbck.from_user.id))
         logging.info(data)
         await clbck.message.answer(
             text.user_data + '\n' + text.form_user_data(data), 
@@ -147,13 +147,24 @@ async def process_name(message, state: FSMContext) -> None:
 @form_router.callback_query(Form.activity)
 async def process_activity(clbck: CallbackQuery, state: FSMContext) -> None:
     await state.update_data(activity = clbck.data)
+    await state.set_state(Form.goal)
+    await clbck.message.delete()
+    await clbck.message.answer(
+        "Какова твоя цель ?",
+        reply_markup=kb.goal,
+    )   
+    await clbck.answer()
+
+@form_router.callback_query(Form.goal)
+async def process_goal(clbck: CallbackQuery, state: FSMContext) -> None:
+    await state.update_data(goal = clbck.data)
     await state.set_state(Form.age)
     await clbck.message.delete()
     await clbck.message.answer(
         "Сколько тебе лет ?",
         reply_markup=ReplyKeyboardRemove(),
     )
-    await clbck.answer()
+
 
 
 @form_router.message(Form.age)
@@ -202,17 +213,19 @@ async def process_weight_summary(message: Message, state: FSMContext) -> None:
 @form_router.callback_query(Form.do_save, F.data == "yes") 
 async def save_data(clbck: CallbackQuery, state: FSMContext):
 
-    data = utils.data_prep(await state.get_data())
+    data = await utils.data_prep(await state.get_data())
     try:
-        fitnessDB.add_user(clbck.from_user.id, 
+        await fitnessDB.add_user(clbck.from_user.id, 
                        data["name"], 
                        data["activity"], 
+                       data["goal"],
                        data["age"], 
                        data["height"], 
                        data["weight"], 
                        data["sex"],
-                       utils.eval_kkal(
+                       await utils.eval_kkal(
                            data["activity"], 
+                           data["goal"],
                             data["age"], 
                             data["height"], 
                             data["weight"], 
@@ -235,20 +248,21 @@ async def save_data(clbck: CallbackQuery, state: FSMContext):
     await clbck.answer()
 
 @form_router.callback_query(Form.do_save, F.data == "no")
-async def save_data(clbck: CallbackQuery, state: FSMContext):
+async def dontsave_data(clbck: CallbackQuery, state: FSMContext):
     await clbck.message.answer("Оставим как было", reply_markup=ReplyKeyboardRemove())
     await state.clear()
     await clbck.answer()
 
 
 async def show_summary(message: Message, data: Dict[str, Any]) -> None:
-    text = f"Итак данные вышли такими:\nПользователь: {data["name"]}\n"
-    text += f"Пол: {data["sex"]}\n"
-    text += f"Активность: {data["activity"]}\n"
-    text += f"Возраст: {data["age"]} лет\n"
-    text += f"Рост: {data["height"]} см\n"
-    text += f"Вес: {data["weight"]} кг"
+    summary = f"Итак данные вышли такими:\nПользователь: {data["name"]}\n"
+    summary += f"Пол: {data["sex"]}\n"
+    summary += f"Активность: {data["activity"]}\n"
+    summary += f"Цель: {text.goal_tuple[data["goal"]]}\n"
+    summary += f"Возраст: {data["age"]} лет\n"
+    summary += f"Рост: {data["height"]} см\n"
+    summary += f"Вес: {data["weight"]} кг"
     
-    await message.answer(text=text, reply_markup=ReplyKeyboardRemove())
+    await message.answer(text=summary, reply_markup=ReplyKeyboardRemove())
 
 

@@ -1,5 +1,6 @@
 import psycopg2
 import logging
+import asyncio
 
 
 #reference of structure in sqlLite https://github.com/Priler/accountant/blob/main/db.py
@@ -20,7 +21,7 @@ class fitnessDB:
              logging.info("[INFO] Error while working with PostgreSQL", _ex)
         
 
-    def user_exists(self, user_id) -> bool: #проверяем, есть ли пользователь в базе
+    async def user_exists(self, user_id) -> bool: #проверяем, есть ли пользователь в базе
         with self.connection.cursor() as cursor:
             try:
             
@@ -31,23 +32,23 @@ class fitnessDB:
             finally:
                 return bool(cursor.fetchone())
     
-    def delete_user(self, user_id):
+    async def delete_user(self, user_id):
         with self.connection.cursor() as cursor:
             cursor.execute("""DELETE FROM users
                             WHERE user_id = %s;""", (user_id, ))
             self.connection.commit()
 
 
-    def add_user(self, user_id, user_name, lifestyle, age, height, weight, gender, kkal) -> bool: #создангие пользователя
+    async def add_user(self, user_id, user_name, lifestyle, goal, age, height, weight, gender, kkal) -> bool: #создангие пользователя
         """"
         delete old and creates new user with 
         user_id as primary key
         """
         try:
-            self.delete_user(user_id)
+            await self.delete_user(user_id)
             with self.connection.cursor() as cursor:
-                cursor.execute("""INSERT INTO users (user_id, user_name, lifestyle, age, height, weight, gender, kkal)
-                                VALUES (%s, %s, %s, %s, %s, %s, %s, %s);""", (user_id, user_name, lifestyle, age, height, weight, gender, kkal))
+                cursor.execute("""INSERT INTO users (user_id, user_name, lifestyle, goal, age, height, weight, gender, kkal)
+                                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s);""", (user_id, user_name, lifestyle, goal, age, height, weight, gender, kkal))
                 self.connection.commit()
                 return True
         except Exception as _ex: 
@@ -59,8 +60,8 @@ class fitnessDB:
 
 
 
-    def get_data(self, user_id) -> tuple:
-        result = (0,0,0,0,0,0,0,0)
+    async def get_data(self, user_id) -> tuple:
+        result = (0,0,0,0,0,0,0,0,0)
         try:
             with self.connection.cursor() as curs:
                 curs.execute("""SELECT * 
@@ -71,7 +72,7 @@ class fitnessDB:
             pass
         return result
     
-    def getfood(self, kkall: float) -> str:
+    async def getfood(self, kkall: float) -> str:
         """"returns 'Not found' when sql output is not provided"""
 
         result = "Not found"
@@ -88,5 +89,5 @@ class fitnessDB:
         return result
         
 
-    def __del__(self): #Закрываем соединение с БД
+    async def __del__(self): #Закрываем соединение с БД
         self.connection.close()
